@@ -1,23 +1,20 @@
 index=/media/alevtina/home/khu/8102index/8102index
 for x in 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30;
-do
-echo "Working on ${x}"
-cd /mnt/safe/Alko/Trimmed/Sample_${x}
-echo "Running Hisat2 ${x}"
-hisat2 -p 8 --dta -x "${index}" -1
-${x}*R1_001.fastq.gz -2 ${x}*R2_001.fastq.gz -S
-"/mnt/safe/Alko/sam/${x}.sam" >
-"/mnt/safe/Alko/sam/${x}_log.txt" 2>&1
-echo "Running sam to bam ${x}"
-samtools view -S -b /mnt/safe/Alko/sam/${x}.sam >
-/mnt/safe/Alko/sam/${x}.bam
-echo "Sorting bam ${x}"
-samtools sort /mnt/safe/Alko/sam/${x}.bam -o
-/mnt/safe/Alko/sam/${x}.sorted.bam
-echo "Performing featureCounts ${x}"
-featureCounts -T 8 -t gene -g ID -a
-/mnt/safe/Alko/Syn_WH8102_2.gff -o
-/mnt/safe/Alko/sam/${x}.txt
-/mnt/safe/Alko/sam/${x}.sorted.bam
-echo "The work on ${x} is finished"
-done
+  do
+   echo "Working on ${x}"
+   cd /mnt/safe/Alko/Trimmed/Sample_${x}
+ 
+   echo "Running Hisat2 ${x}"
+   hisat2 -p 8 --dta -x "${index}" -1 ${x}*R1_001.fastq.gz -2 ${x}*R2_001.fastq.gz -S "/mnt/safe/Alko/sam/${x}.sam" > "/mnt/safe/Alko/sam/${x}_log.txt" 2>&1 
+ 
+   echo "Running sam to bam ${x}"
+   samtools view -S -b /mnt/safe/Alko/sam/${x}.sam > /mnt/safe/Alko/sam/${x}.bam
+
+   echo "Sorting bam ${x}"
+   samtools sort /mnt/safe/Alko/sam/${x}.bam -o /mnt/safe/Alko/sam/${x}.sorted.bam
+
+   echo "Performing featureCounts ${x}"
+   featureCounts -T 8 -t gene -g ID -a /mnt/safe/Alko/Syn_WH8102_2.gff -o /mnt/safe/Alko/sam/${x}.txt /mnt/safe/Alko/sam/${x}.sorted.bam
+
+   echo "The work on ${x} is finished"
+ done
