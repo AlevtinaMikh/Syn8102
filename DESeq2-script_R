@@ -1,0 +1,56 @@
+library(DESeq2)
+library(RColorBrewer)
+library(ggplot2)
+library(ggrepel)
+library(dplyr)
+
+sampleNames <- c('M01', 'M02', 'M03', 'W01', 'W02', 'W03')
+filePath = '/media/alevtina/home/khu/for R/M0 over WT0.csv'
+countData = read.table(file = filePath, header = TRUE, row.names = 1, sep = ',')
+condition <- c('mutant', 'mutant', 'mutant', 'wild type', 'wild type', 'wild type')  #vector of column names for the data frame
+colData <- data.frame(row.names=colnames(countData), condition=factor(condition, levels=c('mutant','wild type')))
+dataset <- DESeqDataSetFromMatrix(countData = countData,
+                                  colData = colData,
+                                  design = ~condition)
+dds <- DESeq(dataset)
+result <- results(dds, contrast=c('condition','mutant','wild type'))
+result <- result[complete.cases(result),]  #remove any rows with NA
+head(result)
+
+n = 50
+resOrdered <- result[order(result$padj),]
+topResults <- rbind( resOrdered[ resOrdered[,'log2FoldChange'] > 0, ][1:n,], 
+                     resOrdered[ resOrdered[,'log2FoldChange'] < 0, ][n:1,] )
+topResults[c(1:10,(2*n-4):(2*n)), c('baseMean','log2FoldChange','padj')]
+
+plotMA(result, main='DESeq2: mutant vs. wild type', ylim=c(-2,2))
+rld <- rlogTransformation(dds, blind=TRUE)
+plotPCA(rld)
+plotCounts(dds, gene=which.min(result$padj), intgroup='condition', pch = 19)
+hmcol <- brewer.pal(11,'RdBu')
+nCounts <- counts(dds, normalized=TRUE)
+heatmap(as.matrix(nCounts[ row.names(topResults), ]), Rowv = NA, col = hmcol, mar = c(8,2))
+
+par(mar=c(5,5,5,5), cex=1.0, cex.main=1.4, cex.axis=1.4, cex.lab=1.4)
+
+#volcano plot
+results=as.data.frame(resOrdered) # convert matrix in data frame
+results$gene=row.names(resOrdered) #create a gene column
+results
+##Highlight genes that have an absolute fold change > 2 and a p-value < Bonferroni cut-off
+results$threshold = as.factor(abs(results$log2FoldChange ) > 2 & results$pvalue < 0.05)
+
+##Construct the plot object
+ggplot(results, aes(x=log2FoldChange, y=-log10(pvalue), colour=results$threshold)) +
+  theme_bw() +
+  ggtitle(label="Volcano plot of Deseq2 analysis for M 0 Zn over WT 0 Zn ") +
+  theme(plot.title = element_text(hjust = 0.5), legend.position="none")+
+  #scale_x_continuous(breaks=seq(-4,6,2))+
+  geom_point(size=1.75) +
+  geom_hline(yintercept = -log(0.05, 10),color = "red", linetype="dashed", size=0.2) +
+  geom_vline(xintercept = -2, color = "red", linetype="dashed", size=0.2) +
+  geom_vline(xintercept = 2, color = "red", linetype="dashed", size=0.2) +
+  xlab("log2 fold change") + ylab("-log10 p-value") +
+  geom_text_repel(data=filter(results, results$threshold==TRUE), aes(label=gene), col="black")+
+  geom_text(data=data.frame( x = 6, y= 5), map=aes(x=x, y=y), label="pval=0.05",  col="black", size=3)
+write.table(results, file = "/media/alevtina/home/khu/for R/temporary.csv")
